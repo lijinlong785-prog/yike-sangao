@@ -415,6 +415,33 @@ export default function PptPreview({
               完成收起
             </button>
           </div>
+          {/* 本地上传 / 替换 / 移除配图 */}
+          {slide.kind !== 'quote' && (
+            <div className="ppt-edit-row ppt-edit-art">
+              <span>配图</span>
+              <div className="ppt-art-controls">
+                {hasArt && (
+                  <img className="ppt-art-thumb" src={slide.illustration} alt="当前配图缩略图" />
+                )}
+                <div className="ppt-art-btns">
+                  <button type="button" className="btn outline sm" onClick={triggerPickImage} disabled={imgBusy}>
+                    {imgBusy ? '压缩 16:9 中…' : hasArt ? '替换本地配图' : '上传本地配图'}
+                  </button>
+                  {hasArt && (
+                    <button type="button" className="btn ghost sm" onClick={removeImage}>
+                      移除配图
+                    </button>
+                  )}
+                  {baseHasArt && slide.illustration !== baseSlide?.illustration && (
+                    <button type="button" className="btn ghost sm" onClick={restoreImage}>
+                      恢复默认图
+                    </button>
+                  )}
+                </div>
+                {imgErr && <span className="ppt-art-err">{imgErr}</span>}
+              </div>
+            </div>
+          )}
           <label className="ppt-edit-row">
             <span>标题</span>
             <input
@@ -480,33 +507,6 @@ export default function PptPreview({
                 aria-label="这一页的条目，一行一条"
               />
             </label>
-          )}
-          {/* 本地上传 / 替换 / 移除配图 */}
-          {slide.kind !== 'quote' && (
-            <div className="ppt-edit-row ppt-edit-art">
-              <span>配图</span>
-              <div className="ppt-art-controls">
-                {hasArt && (
-                  <img className="ppt-art-thumb" src={slide.illustration} alt="当前配图缩略图" />
-                )}
-                <div className="ppt-art-btns">
-                  <button type="button" className="btn outline sm" onClick={triggerPickImage} disabled={imgBusy}>
-                    {imgBusy ? '压缩 16:9 中…' : hasArt ? '替换本地配图' : '上传本地配图'}
-                  </button>
-                  {hasArt && (
-                    <button type="button" className="btn ghost sm" onClick={removeImage}>
-                      移除配图
-                    </button>
-                  )}
-                  {baseHasArt && slide.illustration !== baseSlide?.illustration && (
-                    <button type="button" className="btn ghost sm" onClick={restoreImage}>
-                      恢复默认图
-                    </button>
-                  )}
-                </div>
-                {imgErr && <span className="ppt-art-err">{imgErr}</span>}
-              </div>
-            </div>
           )}
           <label className="ppt-edit-row">
             <span>讲稿</span>

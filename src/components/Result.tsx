@@ -164,6 +164,9 @@ export default function Result({
   onSession,
 }: Props) {
   const [tab, setTab] = useState<'deck' | 'student'>(initialTab)
+  const [layoutMode, setLayoutMode] = useState<'three' | 'two'>(() =>
+    typeof window !== 'undefined' && window.innerWidth >= 1280 ? 'three' : 'two'
+  )
   const [page, setPage] = useState(0)
   const [slideAt, setSlideAt] = useState(initialSlideAt)
   const [editState, setEditState] = useState<{ cur: DeckEdits; undo: DeckEdits[] }>(() => ({
@@ -588,9 +591,17 @@ export default function Result({
         run: () => setFollowing(true),
       },
       {
+        id: 'tool-layout-toggle',
+        group: '工作台工具',
+        title: layoutMode === 'three' ? '切换至「双栏聚焦」视图' : '展开「三栏联动」视图（教案 + 教师课件 + 学生 PPT）',
+        subtitle: layoutMode === 'three' ? '放大单侧画布专注精修' : '左教案、中教师版课件、右学生版 PPT 同屏同步',
+        keywords: '三栏 双栏 视图 布局 联动 layout',
+        run: () => setLayoutMode((m) => (m === 'three' ? 'two' : 'three')),
+      },
+      {
         id: 'tool-tab-deck',
         group: '工作台工具',
-        title: '切换右侧至「教师版课件」',
+        title: '切换至「教师版课件」',
         subtitle: `共 ${deck.length} 页 · 支持原地编辑标题/要点/备注`,
         keywords: '教师 课件 deck',
         run: () => setTab('deck'),
@@ -598,7 +609,7 @@ export default function Result({
       {
         id: 'tool-tab-student',
         group: '工作台工具',
-        title: '切换右侧至「学生版 PPT」',
+        title: '切换至「学生版 PPT」',
         subtitle: `共 ${slides.length} 页 · 公开课投影画面`,
         keywords: '学生 ppt student',
         run: () => setTab('student'),
@@ -672,6 +683,7 @@ export default function Result({
     template.name,
     template.tone,
     making,
+    layoutMode,
     applyDurationMinutes,
     jumpToSegment,
     scrollToBlackboard,
@@ -720,6 +732,19 @@ export default function Result({
           </div>
 
           <div className="studio-bar-tools">
+            <button
+              type="button"
+              className={`tool-btn${layoutMode === 'three' ? ' is-active-view' : ''}`}
+              onClick={() => setLayoutMode((m) => (m === 'three' ? 'two' : 'three'))}
+              title={
+                layoutMode === 'three'
+                  ? '当前为三栏同屏联动（左教案 / 中教师版课件 / 右学生版 PPT），点击切换双栏聚焦'
+                  : '当前为双栏聚焦预览，点击展开三栏同屏联动'
+              }
+            >
+              {layoutMode === 'three' ? '三栏同屏' : '双栏聚焦'}
+            </button>
+
             <button
               type="button"
               className="tool-btn cmd-trigger"
@@ -883,249 +908,310 @@ export default function Result({
         </div>
       )}
 
-      {/* 双栏主工作区：左栏可编辑三稿教案 + 粉笔黑板，右栏同源课件 & 公开课 PPT */}
-      <div className="result-cols">
-        <div className="result-script">
-          <section className="rs-sec">
-            <div className="rs-sec-head">
-              <h2>教学设计</h2>
-              <div className="rs-sec-hint">
-                {planEditedCount > 0 ? (
-                  <>
-                    <span className="edit-pill">已微调 {planEditedCount} 处 · 自动同步导出</span>
-                    <button type="button" className="link-btn" onClick={() => setSegEdits({})}>
-                      还原教案
-                    </button>
-                  </>
-                ) : (
-                  <span className="rs-sec-tip">双击任意「教师 / 学生」活动文字可原地微调</span>
-                )}
-              </div>
-            </div>
-            <TeachingDesign
-              plan={viewPlan}
-              timed={timed}
-              activeSeg={activeSeg}
-              flashSeg={flashSeg}
-              onLocate={(i) => jumpToSegment(i, false)}
-              onPatchSegment={handlePatchSegment}
-            />
-          </section>
-
-          <section className="rs-sec" ref={blackboardRef} id="section-blackboard">
-            <div className="rs-sec-head">
-              <h2>交互式粉笔黑板</h2>
-              <span className="rs-sec-tip">支持分步书写推演 · 4 色粉笔批注 · 2x PNG 导出</span>
-            </div>
-            <InteractiveBlackboard plan={viewPlan} />
-          </section>
-
-          <section className="rs-sec">
-            <h2>说课稿</h2>
-            <Speech plan={viewPlan} />
-          </section>
-
-          <section className="rs-sec">
-            <h2>答辩预案</h2>
-            <Defense plan={viewPlan} />
-          </section>
-
-          <section className="rs-sec">
-            <h2>讲台时间表</h2>
-            <Timeline plan={viewPlan} timed={timed} onStartFollow={() => setFollowing(true)} />
-          </section>
-        </div>
-
-        <aside className={`result-preview${flashPreview ? ' is-synced' : ''}`} style={themeVars(theme)}>
-          <div className="rs-switch">
-            <div className="segmented sm">
-              <button
-                className={tab === 'deck' ? 'seg active' : 'seg'}
-                onClick={() => setTab('deck')}
-              >
-                教师课件（{total}）
-              </button>
-              <button
-                className={tab === 'student' ? 'seg active' : 'seg'}
-                onClick={() => setTab('student')}
-              >
-                {studentTab}
-              </button>
-            </div>
-            <label className="rs-dur" title="可自定义 10–45 分钟">
-              <input
-                type="number"
-                min={DURATION_MIN}
-                max={DURATION_MAX}
-                value={currentMinutes}
-                onChange={(e) => applyDurationMinutes(Number(e.target.value))}
-                aria-label="课时分钟数"
-              />
-              分
-            </label>
-          </div>
-
-          {/* 公开课三大视觉主题快捷切换条 + 模板墙入口 */}
-          {tab === 'student' && (
-            <div className="tpl-bar">
-              <div className="tpl-quick-themes" role="group" aria-label="三大公开课视觉主题">
-                {VISUAL_THEME_IDS.map((vid) => {
-                  const meta = VISUAL_THEMES[vid]
-                  const active = template.id === vid
-                  return (
-                    <button
-                      key={vid}
-                      type="button"
-                      className={`tpl-quick-btn${active ? ' active' : ''}`}
-                      onClick={() => setTemplateId(vid)}
-                      title={meta.tagline}
-                    >
-                      <i className="tpl-swatch" style={{ background: meta.theme.accent }} />
-                      <span>{meta.name}</span>
-                    </button>
-                  )
-                })}
-              </div>
-              <button type="button" className="btn outline sm" onClick={() => setWallOpen(true)}>
-                换模板（{TEMPLATE_ORDER.length} 套）
-              </button>
-            </div>
-          )}
-
-          <div className="rs-stage">
-            {tab === 'deck' && current && (
-              <DeckPageView
-                page={current}
-                index={index}
-                total={total}
-                topic={plan.meta.topic}
-                texture={gridTexture(theme)}
-                onPatch={patchPage}
-                onBullet={patchBullet}
-                onAddBullet={addBullet}
-                onDelete={deletePage}
-                onInsert={insertPage}
-                onMove={movePage}
-                onRestore={restorePage}
-              />
-            )}
-            {tab === 'student' && (
-              <PptPreview
-                topic={plan.meta.topic}
-                slides={slides}
-                theme={studentTheme}
-                template={template}
-                index={slideAt}
-                onIndex={setSlideAt}
-                exportState={pptx}
-                making={making}
-                progress={student.progress}
-                onCancel={onCancelStudent}
-                idle={!making && student.slides.length === 0}
-                stale={studentStale}
-                base={rawSlides}
-                refs={refs}
-                editedCount={editedCount}
-                onPatch={patchSlide}
-                onMove={moveSlide}
-                onRemove={removeSlide}
-                onAdd={addSlide}
-                onUndo={undoEdits}
-                canUndo={editState.undo.length > 0}
-                onResetEdits={resetEdits}
-                onGenerate={() => void handleGenerateStudent()}
-                onDownload={(animated) => void handleExportPptx(animated)}
-              />
-            )}
-          </div>
-
-          {making && student.run && (
-            <RunMeter {...student.run} label={student.progress || '正在生成学生版…'} />
-          )}
-          {tab === 'student' && student.illustNote && <p className="ppt-note">{student.illustNote}</p>}
-
-          {tab === 'deck' && (
-            <div className="rs-nav">
-              <button className="btn outline sm" disabled={index === 0} onClick={() => setPage(index - 1)}>
-                ←
-              </button>
-              <span className="ppt-count">
-                {index + 1} / {total}
-              </span>
-              <button
-                className="btn outline sm"
-                disabled={index >= total - 1}
-                onClick={() => setPage(index + 1)}
-              >
-                →
-              </button>
-              <button
-                className="btn outline sm"
-                onClick={onResetDeck}
-                disabled={!deck.some((p) => p.userEdited)}
-                title="删掉的页与改过的字全部回到原稿"
-              >
-                恢复原稿
-              </button>
-              <button className="btn primary sm" onClick={() => void handleExportDeck()} disabled={deckPptx.busy}>
-                {deckPptx.busy ? '正在导出…' : deckPptx.done ? '已下载 ✓' : '下载教师课件'}
-              </button>
-            </div>
-          )}
-
-          {tab === 'deck' && (
-            <div className="rs-gen">
-              {making ? (
-                <button
-                  className="btn outline sm"
-                  onClick={onCancelStudent}
-                  title="停止这次生成，已经出来的页会留着"
-                >
-                  停止生成
-                </button>
-              ) : student.interrupted && student.slides.length > 0 ? (
-                <button className="btn primary sm" onClick={() => void onGenerate(true)}>
-                  继续生成学生版 PPT
-                </button>
-              ) : student.slides.length === 0 ? (
-                <button className="btn primary sm" onClick={() => void onGenerate()}>
-                  课件改好了，生成学生版 PPT
-                </button>
-              ) : studentStale ? (
-                <>
-                  <button className="btn primary sm" onClick={() => void onGenerate(true)}>
-                    课件已修改，同步重新生成学生版
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button className="btn outline sm" onClick={() => setTab('student')}>
-                    查看学生版 PPT（{slides.length} 页） →
-                  </button>
+      {/* 三栏联动 / 双栏聚焦主工作区：左教案、中教师版课件、右学生版公开课 PPT */}
+      {(() => {
+        const tplBar = (
+          <div className="tpl-bar">
+            <div className="tpl-quick-themes" role="group" aria-label="三大公开课视觉主题">
+              {VISUAL_THEME_IDS.map((vid) => {
+                const meta = VISUAL_THEMES[vid]
+                const active = template.id === vid
+                return (
                   <button
-                    className="btn primary sm"
-                    onClick={() => void handleExportPptx(hasSlideScenes(slides))}
-                    disabled={pptx.busy}
+                    key={vid}
+                    type="button"
+                    className={`tpl-quick-btn${active ? ' active' : ''}`}
+                    onClick={() => setTemplateId(vid)}
+                    title={meta.tagline}
                   >
-                    {pptx.busy ? `编排第 ${pptx.page}/${pptx.total} 页…` : pptx.done ? '已下载 ✓' : '导出学生版 PPTX'}
+                    <i className="tpl-swatch" style={{ background: meta.theme.accent }} />
+                    <span>{meta.name}</span>
                   </button>
-                </>
-              )}
+                )
+              })}
             </div>
-          )}
+            <button type="button" className="btn outline sm" onClick={() => setWallOpen(true)}>
+              换模板（{TEMPLATE_ORDER.length} 套）
+            </button>
+          </div>
+        )
 
-          <p className="rs-theme" title={tab === 'student' ? template.fits.join(' / ') : (theme.note ?? undefined)}>
-            {tab === 'student'
-              ? `当前视觉：${template.name}·${template.tone}（预览 / 模板墙 / .pptx 三处同源）`
-              : `文档纸面：${theme.name}（点击页内文字即可原地编辑）`}
-          </p>
-          {themeReport && themeReport.problems.length > 0 && themeReport.source === 'builtin' && (
-            <p className="pv-theme-note" title={themeReport.problems.join('；')}>
-              纸面已回落默认：{themeReport.problems[0]}
-            </p>
-          )}
-        </aside>
-      </div>
+        const deckStage = current ? (
+          <DeckPageView
+            page={current}
+            index={index}
+            total={total}
+            topic={plan.meta.topic}
+            texture={gridTexture(theme)}
+            onPatch={patchPage}
+            onBullet={patchBullet}
+            onAddBullet={addBullet}
+            onDelete={deletePage}
+            onInsert={insertPage}
+            onMove={movePage}
+            onRestore={restorePage}
+          />
+        ) : null
+
+        const studentStage = (
+          <PptPreview
+            topic={plan.meta.topic}
+            slides={slides}
+            theme={studentTheme}
+            template={template}
+            index={slideAt}
+            onIndex={setSlideAt}
+            exportState={pptx}
+            making={making}
+            progress={student.progress}
+            onCancel={onCancelStudent}
+            idle={!making && student.slides.length === 0}
+            stale={studentStale}
+            base={rawSlides}
+            refs={refs}
+            editedCount={editedCount}
+            onPatch={patchSlide}
+            onMove={moveSlide}
+            onRemove={removeSlide}
+            onAdd={addSlide}
+            onUndo={undoEdits}
+            canUndo={editState.undo.length > 0}
+            onResetEdits={resetEdits}
+            onGenerate={() => void handleGenerateStudent()}
+            onDownload={(animated) => void handleExportPptx(animated)}
+          />
+        )
+
+        const deckNav = (
+          <div className="rs-nav">
+            <button className="btn outline sm" disabled={index === 0} onClick={() => setPage(index - 1)}>
+              ←
+            </button>
+            <span className="ppt-count">
+              {index + 1} / {total}
+            </span>
+            <button
+              className="btn outline sm"
+              disabled={index >= total - 1}
+              onClick={() => setPage(index + 1)}
+            >
+              →
+            </button>
+            <button
+              className="btn outline sm"
+              onClick={onResetDeck}
+              disabled={!deck.some((p) => p.userEdited)}
+              title="删掉的页与改过的字全部回到原稿"
+            >
+              恢复原稿
+            </button>
+            <button className="btn primary sm" onClick={() => void handleExportDeck()} disabled={deckPptx.busy}>
+              {deckPptx.busy ? '正在导出…' : deckPptx.done ? '已下载 ✓' : '下载教师课件'}
+            </button>
+          </div>
+        )
+
+        return (
+          <div className={layoutMode === 'three' ? 'result-cols is-three' : 'result-cols'}>
+            <div className="result-script">
+              <section className="rs-sec">
+                <div className="rs-sec-head">
+                  <h2>教学设计</h2>
+                  <div className="rs-sec-hint">
+                    {planEditedCount > 0 ? (
+                      <>
+                        <span className="edit-pill">已微调 {planEditedCount} 处 · 自动同步导出</span>
+                        <button type="button" className="link-btn" onClick={() => setSegEdits({})}>
+                          还原教案
+                        </button>
+                      </>
+                    ) : (
+                      <span className="rs-sec-tip">双击任意「教师 / 学生」活动文字可原地微调</span>
+                    )}
+                  </div>
+                </div>
+                <TeachingDesign
+                  plan={viewPlan}
+                  timed={timed}
+                  activeSeg={activeSeg}
+                  flashSeg={flashSeg}
+                  onLocate={(i) => jumpToSegment(i, false)}
+                  onPatchSegment={handlePatchSegment}
+                />
+              </section>
+
+              <section className="rs-sec" ref={blackboardRef} id="section-blackboard">
+                <div className="rs-sec-head">
+                  <h2>交互式粉笔黑板</h2>
+                  <span className="rs-sec-tip">支持分步书写推演 · 4 色粉笔批注 · 2x PNG 导出</span>
+                </div>
+                <InteractiveBlackboard plan={viewPlan} />
+              </section>
+
+              <section className="rs-sec">
+                <h2>说课稿</h2>
+                <Speech plan={viewPlan} />
+              </section>
+
+              <section className="rs-sec">
+                <h2>答辩预案</h2>
+                <Defense plan={viewPlan} />
+              </section>
+
+              <section className="rs-sec">
+                <h2>讲台时间表</h2>
+                <Timeline plan={viewPlan} timed={timed} onStartFollow={() => setFollowing(true)} />
+              </section>
+            </div>
+
+            {layoutMode === 'three' ? (
+              <>
+                <aside className={`result-mid${flashPreview ? ' is-synced' : ''}`} style={themeVars(theme)}>
+                  <div className="rs-col-head">
+                    <div className="rs-col-title">
+                      <span className="rs-col-dot teacher" />
+                      <strong>教师版课件</strong>
+                      <em>{total} 页</em>
+                    </div>
+                    <span className="rs-col-sub">点击页内文字原地编辑</span>
+                  </div>
+                  <div className="rs-stage">{deckStage}</div>
+                  {deckNav}
+                  <p className="rs-theme" title={theme.note ?? undefined}>
+                    文档纸面：{theme.name}（保留全部增删改页与口播备注）
+                  </p>
+                </aside>
+
+                <aside className={`result-preview${flashPreview ? ' is-synced' : ''}`} style={themeVars(theme)}>
+                  <div className="rs-col-head">
+                    <div className="rs-col-title">
+                      <span className="rs-col-dot student" />
+                      <strong>学生版公开课 PPT</strong>
+                      <em>{slides.length} 页</em>
+                    </div>
+                    <label className="rs-dur" title="可自定义 10–45 分钟">
+                      <input
+                        type="number"
+                        min={DURATION_MIN}
+                        max={DURATION_MAX}
+                        value={currentMinutes}
+                        onChange={(e) => applyDurationMinutes(Number(e.target.value))}
+                        aria-label="课时分钟数"
+                      />
+                      分
+                    </label>
+                  </div>
+                  {tplBar}
+                  <div className="rs-stage">{studentStage}</div>
+                  {making && student.run && (
+                    <RunMeter {...student.run} label={student.progress || '正在生成学生版…'} />
+                  )}
+                  {student.illustNote && <p className="ppt-note">{student.illustNote}</p>}
+                  <p className="rs-theme" title={template.fits.join(' / ')}>
+                    当前视觉：{template.name}·{template.tone}（预览 / 模板墙 / .pptx 三处同源）
+                  </p>
+                </aside>
+              </>
+            ) : (
+              <aside className={`result-preview${flashPreview ? ' is-synced' : ''}`} style={themeVars(theme)}>
+                <div className="rs-switch">
+                  <div className="segmented sm">
+                    <button
+                      className={tab === 'deck' ? 'seg active' : 'seg'}
+                      onClick={() => setTab('deck')}
+                    >
+                      教师课件（{total}）
+                    </button>
+                    <button
+                      className={tab === 'student' ? 'seg active' : 'seg'}
+                      onClick={() => setTab('student')}
+                    >
+                      {studentTab}
+                    </button>
+                  </div>
+                  <label className="rs-dur" title="可自定义 10–45 分钟">
+                    <input
+                      type="number"
+                      min={DURATION_MIN}
+                      max={DURATION_MAX}
+                      value={currentMinutes}
+                      onChange={(e) => applyDurationMinutes(Number(e.target.value))}
+                      aria-label="课时分钟数"
+                    />
+                    分
+                  </label>
+                </div>
+
+                {tab === 'student' && tplBar}
+
+                <div className="rs-stage">
+                  {tab === 'deck' && deckStage}
+                  {tab === 'student' && studentStage}
+                </div>
+
+                {making && student.run && (
+                  <RunMeter {...student.run} label={student.progress || '正在生成学生版…'} />
+                )}
+                {tab === 'student' && student.illustNote && <p className="ppt-note">{student.illustNote}</p>}
+
+                {tab === 'deck' && deckNav}
+
+                {tab === 'deck' && (
+                  <div className="rs-gen">
+                    {making ? (
+                      <button
+                        className="btn outline sm"
+                        onClick={onCancelStudent}
+                        title="停止这次生成，已经出来的页会留着"
+                      >
+                        停止生成
+                      </button>
+                    ) : student.interrupted && student.slides.length > 0 ? (
+                      <button className="btn primary sm" onClick={() => void onGenerate(true)}>
+                        继续生成学生版 PPT
+                      </button>
+                    ) : student.slides.length === 0 ? (
+                      <button className="btn primary sm" onClick={() => void onGenerate()}>
+                        课件改好了，生成学生版 PPT
+                      </button>
+                    ) : studentStale ? (
+                      <>
+                        <button className="btn primary sm" onClick={() => void onGenerate(true)}>
+                          课件已修改，同步重新生成学生版
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button className="btn outline sm" onClick={() => setTab('student')}>
+                          查看学生版 PPT（{slides.length} 页） →
+                        </button>
+                        <button
+                          className="btn primary sm"
+                          onClick={() => void handleExportPptx(hasSlideScenes(slides))}
+                          disabled={pptx.busy}
+                        >
+                          {pptx.busy ? `编排第 ${pptx.page}/${pptx.total} 页…` : pptx.done ? '已下载 ✓' : '导出学生版 PPTX'}
+                        </button>
+                      </>
+                    )}
+                  </div>
+                )}
+
+                <p className="rs-theme" title={tab === 'student' ? template.fits.join(' / ') : (theme.note ?? undefined)}>
+                  {tab === 'student'
+                    ? `当前视觉：${template.name}·${template.tone}（预览 / 模板墙 / .pptx 三处同源）`
+                    : `文档纸面：${theme.name}（点击页内文字即可原地编辑）`}
+                </p>
+                {themeReport && themeReport.problems.length > 0 && themeReport.source === 'builtin' && (
+                  <p className="pv-theme-note" title={themeReport.problems.join('；')}>
+                    纸面已回落默认：{themeReport.problems[0]}
+                  </p>
+                )}
+              </aside>
+            )}
+          </div>
+        )
+      })()}
 
       {following && (
         <Teleprompter

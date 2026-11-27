@@ -192,6 +192,8 @@ export const HETANG_STUDENT_SLIDES: StudentSlide[] = [
   {
     kind: 'cover',
     title: '荷塘月色',
+    meta: '高中语文 · 高一上册',
+    byline: '主讲：李金龙 · 搭档：林新锐',
     line: '一个人，为什么夜里出门？',
     notes: '今天读《荷塘月色》。先不急着看景，先看第一句：这几天心里颇不宁静。（停三秒）一个人心里不静的时候，会做什么？他选了出门。',
   },

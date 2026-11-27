@@ -1025,6 +1025,14 @@ function harden(slide: StudentSlide, bits: PlanBits): StudentSlide {
     out.illustration = slide.illustration
   }
 
+  // 封面教材与署名行（meta / byline）重建对象时原样保留，避免被 withCoverMeta 覆盖回空白班级
+  if (kind === 'cover') {
+    const meta = String(slide.meta ?? '').replace(/\s+/g, ' ').trim()
+    const byline = String(slide.byline ?? '').replace(/\s+/g, ' ').trim()
+    if (meta) out.meta = meta
+    if (byline) out.byline = byline
+  }
+
   /* 引文块（pull）：模型自己指的那句「这一页要用的原文」。这里只搬不判——
      逐字校验要拿整篇原文，那是 withPulls 的事（它手上才有 plan.meta.text）。 */
   const pull = String(slide.pull ?? '').replace(/\s+/g, ' ').trim()

@@ -50,7 +50,7 @@ export function sampleCover(topic: string): StudentSlide {
     title: t,
     meta: '公开课示范课件',
     line: '一课三稿 · 实时同源排版',
-    byline: '教研组公开课',
+    byline: '主讲：李金龙 · 搭档：林新锐',
     illustration: art,
     items: [],
     notes: '',

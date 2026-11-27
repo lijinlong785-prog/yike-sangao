@@ -34,6 +34,7 @@ body {
   -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--studio-line);
   height: 58px;
+  z-index: 50;
 }
 
 .brand-mark {
@@ -73,8 +74,8 @@ body {
 
 /* 宽屏工作台容器：.result 绝不挂 transform 避免困住 fixed 弹窗 */
 .main.is-workspace {
-  max-width: 1420px;
-  padding: 24px clamp(16px, 3vw, 40px) 64px;
+  max-width: 1560px;
+  padding: 20px clamp(16px, 2vw, 28px) 64px;
 }
 
 .result {
@@ -563,6 +564,8 @@ body {
 
 /* ==================== 2. 结果页极简工作台顶部控制条 ==================== */
 .studio-bar {
+  position: relative;
+  z-index: 35;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -2073,11 +2076,197 @@ body {
   color: #fff;
 }
 
+/* ==================== 10. 三栏同屏联动工作区（左教案 / 中教师版课件 / 右学生版 PPT） ==================== */
+.tool-btn.is-active-view {
+  background: rgba(40, 102, 85, 0.1);
+  border-color: rgba(40, 102, 85, 0.32);
+  color: #1f5344;
+  font-weight: 600;
+}
+
+.result-cols.is-three {
+  display: grid;
+  grid-template-columns: minmax(390px, 1.05fr) minmax(420px, 1fr) minmax(450px, 1.08fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.result-cols.is-three .result-script {
+  max-width: none;
+  min-width: 0;
+}
+
+.result-mid {
+  position: sticky;
+  top: 70px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  padding: 14px;
+  border-radius: var(--studio-radius-md);
+  background: var(--studio-card);
+  border: 1px solid var(--studio-line);
+  box-shadow: var(--studio-shadow-sm);
+}
+
+.result-cols.is-three .result-preview {
+  position: sticky;
+  top: 70px;
+  min-width: 0;
+  padding: 14px;
+  border-radius: var(--studio-radius-md);
+  background: var(--studio-card);
+  border: 1px solid var(--studio-line);
+  box-shadow: var(--studio-shadow-sm);
+}
+
+.result-cols.is-three .tpl-bar {
+  margin: 0 0 2px;
+}
+
+.result-cols.is-three .rs-nav {
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.result-mid.is-synced .pv-page {
+  box-shadow: 0 0 0 3px rgba(40, 102, 85, 0.42), var(--studio-shadow-md);
+  transition: box-shadow 0.35s var(--ease-out);
+}
+
+.rs-col-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--studio-line);
+}
+
+.rs-col-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.rs-col-title strong {
+  font-family: var(--font-serif);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.rs-col-title em {
+  font-style: normal;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: rgba(30, 28, 25, 0.06);
+  color: var(--ink-2);
+}
+
+.rs-col-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.rs-col-dot.teacher {
+  background: #4e6e6b;
+}
+
+.rs-col-dot.student {
+  background: #b23a2e;
+}
+
+.rs-col-sub {
+  font-size: 11.5px;
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+
+@media (max-width: 1240px) {
+  .result-cols.is-three {
+    grid-template-columns: minmax(0, 1fr) minmax(440px, 0.95fr);
+  }
+  .result-mid {
+    position: static;
+  }
+}
+
+/* ==================== 11. 设置页（模型接入）Editorial Studio 精修 ==================== */
+.settings {
+  max-width: 820px;
+  margin: 12px auto 36px;
+}
+
+.settings h2 {
+  font-family: var(--font-serif);
+  font-size: 28px;
+  letter-spacing: 0.02em;
+  color: var(--ink);
+}
+
+.settings .card {
+  background: var(--studio-card-solid);
+  border: 1px solid var(--studio-line);
+  border-radius: var(--studio-radius-md);
+  box-shadow: var(--studio-shadow-sm);
+  padding: 22px 24px;
+  margin-bottom: 16px;
+}
+
+.settings .chip {
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.85);
+  border-color: var(--studio-line-strong);
+  padding: 6px 14px;
+  transition: all 0.18s var(--spring);
+}
+
+.settings .chip:hover {
+  border-color: var(--ink-2);
+  color: var(--ink);
+}
+
+.settings .chip.active {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: #fff;
+  box-shadow: 0 3px 10px rgba(30, 28, 25, 0.16);
+}
+
+.settings details.card > summary {
+  font-size: 14.5px;
+  color: var(--ink);
+  letter-spacing: 0.03em;
+}
+
+.settings input {
+  border-radius: 9px;
+  border: 1px solid var(--studio-line-strong);
+  background: rgba(250, 248, 243, 0.72);
+  padding: 10px 12px;
+  font-family: var(--font-mono);
+  font-size: 13.5px;
+}
+
+.settings input:focus {
+  border-color: var(--cinnabar);
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(178, 58, 46, 0.1);
+}
+
 @media print {
   .topbar,
   .studio-bar-controls,
   .pacing-wrap,
   .ibb-toolbar,
+  .result-mid,
   .result-preview,
   .seg-locate-btn,
   .seg-act-editbtn,

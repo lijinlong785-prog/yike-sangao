@@ -264,10 +264,13 @@ export function placeVisualSlide(slide: StudentSlide, theme: DeckTheme): Placed[
         })
       }
       if (slide.byline) {
+        if (art) {
+          out.push({ kind: 'rect', x: 0.565, y: 0.875, w: 0.38, h: 0.072, fill: theme.paper, opacity: 0.86, radius: 10 })
+        }
         pushText({
           x: 0.58, y: 0.885, w: 0.35, h: 0.055,
           text: slide.byline, size: VISUAL_TYPOGRAPHY.caption, font: theme.fontBody,
-          color: theme.muted, align: 'right', valign: 'middle',
+          color: art ? theme.ink : theme.muted, align: 'right', valign: 'middle',
         })
       }
       return out
@@ -305,10 +308,13 @@ export function placeVisualSlide(slide: StudentSlide, theme: DeckTheme): Placed[
         })
       }
       if (slide.byline) {
+        if (art) {
+          out.push({ kind: 'rect', x: 0.075, y: 0.86, w: 0.44, h: 0.072, fill: theme.paper, opacity: 0.88, radius: 8 })
+        }
         pushText({
-          x: 0.09, y: 0.87, w: 0.48, h: 0.055,
+          x: 0.09, y: 0.87, w: 0.41, h: 0.055,
           text: slide.byline, size: VISUAL_TYPOGRAPHY.caption, font: theme.fontBody,
-          color: theme.muted, align: 'left', valign: 'middle',
+          color: art ? theme.ink : theme.muted, align: 'left', valign: 'middle',
         })
       }
       return out
@@ -345,10 +351,13 @@ export function placeVisualSlide(slide: StudentSlide, theme: DeckTheme): Placed[
       })
     }
     if (slide.byline) {
+      if (art) {
+        out.push({ kind: 'rect', x: 0.56, y: 0.865, w: 0.375, h: 0.072, fill: theme.paper, opacity: 0.88, radius: 10 })
+      }
       pushText({
         x: 0.58, y: 0.875, w: 0.34, h: 0.055,
         text: slide.byline, size: VISUAL_TYPOGRAPHY.caption, font: theme.fontBody,
-        color: theme.muted, align: 'right', valign: 'middle',
+        color: art ? theme.ink : theme.muted, align: 'right', valign: 'middle',
       })
     }
     return out
