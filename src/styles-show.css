@@ -1,0 +1,800 @@
+/* 演示模式专用样式（TASKS/04）。
+   它随 SlideShow 一起懒加载：不点「演示」，这份 CSS 不会进首屏。 */
+
+/* ============================================================
+   演示模式（TASKS/04）
+   动效只存在于此，导出的 .pptx 是静态页。
+   DESIGN.md 禁用渐变，所以关键词下划线用伪元素缩放，不用 background-size。
+   ============================================================ */
+.show {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  background: var(--paper);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.show-loading {
+  align-items: center;
+  justify-content: center;
+  cursor: default;
+  font-size: 13px;
+  letter-spacing: 0.18em;
+  color: var(--ink-3);
+}
+
+/* 工具基准回写（TASKS/08 §C.4）。
+   .show 根节点上挂的是课件主题变量，但退出钮和底部控制条属于工具本体，
+   颜色必须和首页逐像素一致——所以在这两个元素上把变量名指回 styles.css
+   的 --tool-* 基准。本文件仍然一份 hex 都不写，只写 var()。
+   （字体栈不必回写：六套主题的 sans 位都是与 :root 同一串黑体。）
+   --rule-width 也必须回写成 1px：分隔线粗细现在真的跟主题走（赭褐是 2px），
+   不钉住的话工具按钮的边框会被课件主题换粗细——那就不再是工具本体了。 */
+.show-exit,
+.show-foot {
+  --paper: var(--tool-paper);
+  --paper-deep: var(--tool-paper-deep);
+  --paper-line: var(--tool-paper-line);
+  --ink: var(--tool-ink);
+  --ink-2: var(--tool-ink-2);
+  --ink-3: var(--tool-ink-3);
+  --cinnabar: var(--tool-cinnabar);
+  --cinnabar-soft: var(--tool-cinnabar-soft);
+  --rule-width: 1px;
+}
+
+.show-exit {
+  position: absolute;
+  top: 20px;
+  right: 26px;
+  z-index: 2;
+  padding: 6px 12px;
+  border: var(--rule-width, 1px) solid var(--paper-line);
+  border-radius: var(--radius);
+  background: var(--paper);
+  color: var(--ink-3);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+}
+
+.show-exit:hover {
+  color: var(--cinnabar);
+  border-color: var(--cinnabar);
+}
+
+.show-stage {
+  position: relative;
+  isolation: isolate;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 60px clamp(36px, 7vw, 112px) 28px;
+  overflow: hidden;
+}
+
+.show-foot {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  height: 54px;
+  padding: 0 clamp(20px, 4vw, 48px);
+  border-top: var(--rule-width, 1px) solid var(--paper-line);
+  font-size: 12.5px;
+  color: var(--ink-3);
+  cursor: default;
+}
+
+.show-btn {
+  padding: 5px 13px;
+  border: var(--rule-width, 1px) solid var(--paper-line);
+  border-radius: var(--radius);
+  background: var(--paper);
+  color: var(--ink-2);
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.show-btn:hover:not(:disabled) {
+  color: var(--cinnabar);
+  border-color: var(--cinnabar);
+}
+
+.show-btn:disabled {
+  opacity: 0.32;
+  cursor: default;
+}
+
+.show-hint {
+  margin-right: auto;
+  letter-spacing: 0.04em;
+}
+
+.show-page {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  color: var(--ink-2);
+}
+
+/* ---------- 幻灯片公共 ---------- */
+.ss-slide {
+  width: 100%;
+  max-width: 1060px;
+  animation: ss-in 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes ss-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.ss-label {
+  margin: 0 0 16px;
+  font-size: 11.5px;
+  letter-spacing: 0.3em;
+  color: var(--cinnabar);
+}
+
+.ss-title {
+  margin: 0 0 clamp(18px, 3.4vh, 38px);
+  font-family: var(--font-serif);
+  font-size: clamp(28px, 3.4vw, 46px);
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: 0.01em;
+}
+
+.ss-hint {
+  margin: clamp(18px, 3vh, 32px) 0 0;
+  padding-left: 14px;
+  border-left: 2px solid var(--cinnabar-soft);
+  font-size: 14px;
+  line-height: 1.8;
+  color: var(--ink-3);
+}
+
+/* ---------- 模板 A：逐层揭示 ---------- */
+.ss-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(12px, 2.4vh, 24px);
+}
+
+.ss-item {
+  display: flex;
+  gap: 18px;
+  align-items: flex-start;
+  opacity: 0;
+  transform: translateY(12px);
+  transition:
+    opacity 400ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 400ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.ss-item.on {
+  opacity: 1;
+  transform: none;
+}
+
+.ss-no {
+  flex: 0 0 auto;
+  padding-top: 0.55em;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  letter-spacing: 0.1em;
+  color: var(--ink-3);
+}
+
+.ss-text {
+  font-size: clamp(18px, 1.9vw, 27px);
+  line-height: 1.72;
+  color: var(--ink);
+}
+
+.ss-key {
+  position: relative;
+  color: var(--cinnabar);
+}
+
+.ss-key::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -3px;
+  height: 2px;
+  background: var(--cinnabar);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 460ms cubic-bezier(0.22, 1, 0.36, 1) 120ms;
+}
+
+.ss-item.on .ss-key::after {
+  transform: scaleX(1);
+}
+
+/* ---------- 封面 ---------- */
+.ss-cover {
+  max-width: 900px;
+}
+
+.ss-cover-title {
+  margin: 0 0 20px;
+  font-family: var(--font-serif);
+  font-size: clamp(38px, 7vw, 92px);
+  font-weight: 600;
+  line-height: 1.16;
+  letter-spacing: 0.02em;
+}
+
+.ss-cover-meta {
+  margin: 0;
+  font-size: 15px;
+  color: var(--ink-2);
+}
+
+.ss-cover-rule {
+  display: block;
+  width: 64px;
+  height: 2px;
+  margin: 30px 0 18px;
+  background: var(--cinnabar);
+}
+
+.ss-cover-note {
+  margin: 0;
+  font-size: 12.5px;
+  letter-spacing: 0.08em;
+  color: var(--ink-3);
+}
+
+/* ---------- 模板 B：结构拆解 ---------- */
+.cube-wrap {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+  gap: clamp(24px, 4vw, 56px);
+  align-items: center;
+}
+
+.cube {
+  width: 100%;
+  max-height: 56vh;
+}
+
+/* 收拢时把场景放大，展开时退回原比例——长方体在停住的那一页不会显得小气 */
+.cube-scene {
+  transform-box: view-box;
+  transform-origin: 260px 240px;
+  transform: scale(1.45);
+  transition: transform 600ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.cube-scene.out {
+  transform: scale(1);
+}
+
+.cube-edges line {
+  stroke: var(--ink-2);
+  stroke-width: 1.2;
+  transition: opacity 500ms ease;
+}
+
+.cube-edges line.is-hidden {
+  stroke: var(--ink-3);
+  stroke-dasharray: 4 4;
+}
+
+.cube-edges.dim {
+  opacity: 0.12;
+}
+
+.cube-face {
+  fill: var(--paper-deep);
+  stroke: var(--ink);
+  stroke-width: 1.4;
+  transition:
+    transform 600ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 420ms ease;
+}
+
+/* 左、下、后三个面在原位被挡着，收拢时隐身，展开时跟着浮出来 */
+.cube-face.hidden {
+  opacity: 0;
+}
+
+.cube-face.hidden.out {
+  opacity: 1;
+}
+
+.cube-tag {
+  fill: var(--cinnabar);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  opacity: 0;
+  transition: opacity 460ms ease 160ms;
+}
+
+.cube-tag.on {
+  opacity: 1;
+}
+
+.cube-notes {
+  opacity: 0;
+  transform: translateY(8px);
+  transition:
+    opacity 420ms ease,
+    transform 420ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.cube-notes.on {
+  opacity: 1;
+  transform: none;
+}
+
+.cube-count {
+  display: flex;
+  gap: 22px;
+  margin-bottom: 14px;
+  font-size: 12.5px;
+  color: var(--ink-3);
+}
+
+.cube-count b {
+  margin-right: 4px;
+  font-family: var(--font-serif);
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--cinnabar);
+}
+
+.cube-note {
+  margin: 8px 0;
+  font-size: 13.5px;
+  line-height: 1.7;
+  color: var(--ink-2);
+}
+
+.cube-note em {
+  margin-right: 8px;
+  padding-bottom: 1px;
+  border-bottom: var(--rule-width, 1px) solid var(--cinnabar);
+  font-style: normal;
+  color: var(--ink);
+}
+
+/* .cube-side 是拆解页右列的容器，此前没有任何规则（既存 bug），现在补齐：
+   垂直居中、可截断，只消费既有色板变量。 */
+.cube-side {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+}
+
+/* ============================================================
+   TASKS/08 §A：三页真交互的岔路装饰
+   键盘主线（揭示、步骤计数）的样式一条没改；这里只给鼠标岔路加皮。
+   规矩：零件/条目的选中态描主题强调色（那是「要圈住的词」）；
+   「拆开」按钮走 --tool-* 中性基准，不占那一支强调色；仍然零 hex、零渐变。
+   ============================================================ */
+
+/* 拆解页要给右下角按钮当锚点；只动 ss-slide-b，其余页的 .ss-slide 不置 relative */
+.ss-slide-b {
+  position: relative;
+}
+
+/* 拆开 / 合上：工具本体的中性按钮，基准回写与 .show-btn 同一套路，边钉 1px */
+.show-cta {
+  --paper: var(--tool-paper);
+  --paper-line: var(--tool-paper-line);
+  --ink-2: var(--tool-ink-2);
+  --cinnabar: var(--tool-cinnabar);
+  --rule-width: 1px;
+  position: absolute;
+  right: 4px;
+  bottom: -6px;
+  z-index: 2;
+  padding: 5px 16px;
+  border: var(--rule-width, 1px) solid var(--paper-line);
+  border-radius: var(--radius);
+  background: var(--paper);
+  color: var(--ink-2);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  cursor: pointer;
+}
+
+.show-cta:hover {
+  color: var(--cinnabar);
+  border-color: var(--cinnabar);
+}
+
+/* 散开后零件才可点（可点性只看画面状态，不看键盘 step） */
+.cube-face.out {
+  cursor: pointer;
+}
+
+.cube-face.out:hover {
+  stroke-width: 2.2;
+}
+
+/* 被点零件：主题强调色外框——岔路里唯一花强调色的地方 */
+.cube-face.peak {
+  stroke: var(--cinnabar);
+  stroke-width: 3;
+}
+
+/* 零件旁边浮出的 ≤12 字小字：纸色光晕把线稿垫开，不靠阴影不靠模糊 */
+.cube-part-note {
+  fill: var(--ink-2);
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  letter-spacing: 0.04em;
+  stroke: var(--paper);
+  stroke-width: 4;
+  paint-order: stroke;
+}
+
+/* 对比页：条目可点；选中的一对左右同描强调色边（outline 不顶版式） */
+.ss-item.pickable {
+  cursor: pointer;
+}
+
+.ss-item.peak .ss-text {
+  outline: 2px solid var(--cinnabar);
+  outline-offset: 4px;
+}
+
+/* 两栏对比页的定位宿主：只给浮出提示当锚点，本身不改版式 */
+.ss-list-host {
+  position: relative;
+}
+
+/* 两栏中间浮出的「哪儿不一样」：绝对居中挂在宿主中央的空档里，
+   不占版、选中/清除时下半页不抖；纸线上下各一道，进场淡入，不参与揭示节拍 */
+.ss-compare-hint {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  max-width: min(640px, 78%);
+  padding: 10px 18px;
+  border-top: var(--rule-width, 1px) solid var(--paper-line);
+  border-bottom: var(--rule-width, 1px) solid var(--paper-line);
+  background: var(--paper);
+  text-align: center;
+  font-family: var(--font-serif);
+  font-size: clamp(15px, 1.5vw, 20px);
+  line-height: 1.7;
+  color: var(--ink-2);
+  animation: hint-in 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* 只淡入不改 transform：transform 已被居中占用，再叠 translateY 会把提示条从中心拽偏 */
+@keyframes hint-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* 路径页：站名与小圆点都可点，透明大命中区不吃 stroke */
+.path-node {
+  cursor: pointer;
+}
+
+.path-hit {
+  fill: transparent;
+  stroke: none;
+  pointer-events: all;
+}
+
+/* 「这里可以点」：只住在岔路页的右下角；基准回写保持工具中性，
+   pointer-events 全透，不遮点击也不参与布局。 */
+.show-tap-hint {
+  --ink-3: var(--tool-ink-3);
+  position: absolute;
+  right: 26px;
+  bottom: 70px;
+  z-index: 3;
+  pointer-events: none;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  color: var(--ink-3);
+  opacity: 0;
+  transform: translateY(4px);
+  transition:
+    opacity 500ms ease,
+    transform 500ms ease;
+}
+
+.show-tap-hint.on {
+  opacity: 1;
+  transform: none;
+}
+
+/* ---------- 模板 C：路径生长 ---------- */
+.path-wrap {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 0.6fr);
+  gap: clamp(24px, 4vw, 52px);
+  align-items: center;
+}
+
+.path-svg {
+  width: 100%;
+  max-height: 52vh;
+}
+
+.path-base {
+  fill: none;
+  stroke: var(--paper-line);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.path-line {
+  fill: none;
+  stroke: var(--cinnabar);
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 600ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.path-node circle {
+  fill: var(--paper);
+  stroke: var(--ink-3);
+  stroke-width: 1.5;
+  transition:
+    fill 400ms ease,
+    stroke 400ms ease,
+    r 400ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.path-node text {
+  fill: var(--ink-3);
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  transition: fill 400ms ease;
+}
+
+.path-node.on circle {
+  fill: var(--cinnabar);
+  stroke: var(--cinnabar);
+}
+
+.path-node.on text {
+  fill: var(--ink);
+}
+
+.path-caption {
+  min-height: 190px;
+  padding-left: 24px;
+  border-left: 2px solid var(--paper-line);
+}
+
+.path-index {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  letter-spacing: 0.18em;
+  color: var(--cinnabar);
+}
+
+.path-caption h3 {
+  margin: 10px 0 12px;
+  font-family: var(--font-serif);
+  font-size: clamp(20px, 2vw, 28px);
+  font-weight: 600;
+}
+
+.path-caption p {
+  margin: 0;
+  font-size: 14.5px;
+  line-height: 1.9;
+  color: var(--ink-2);
+}
+
+/* ============================================================
+   学生版页面（TASKS/07 §4.3）
+   网页演示就是这一叠 StudentSlide[] 的播放版：封面只留课题与引子，
+   问句排最后一步出场，图位给虚线框 + 检索词，字词页给大字。
+   仍然只用纸、墨、朱三色，无渐变、无模糊、圆角走 var(--radius)。
+   ============================================================ */
+
+/* 封面那句引子（学生看到的第二行字，不再有「小学五年级语文」那种信息条） */
+.ss-cover-lead {
+  margin: 0 0 22px;
+  font-family: var(--font-serif);
+  font-size: clamp(20px, 2.6vw, 34px);
+  line-height: 1.6;
+  color: var(--ink-2);
+}
+
+/* 图位：课前要换成真图的占位框，和课件预览页 .pv-figure 同一种处理 */
+.ss-figure {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+  justify-content: center;
+  min-height: 104px;
+  max-width: 420px;
+  margin-bottom: clamp(18px, 3vh, 32px);
+  padding: 14px;
+  border: var(--rule-width, 1px) dashed var(--ink-3);
+  border-radius: var(--radius);
+  text-align: center;
+}
+
+.ss-figure-tag {
+  font-size: 11px;
+  letter-spacing: 0.28em;
+  color: var(--ink-3);
+}
+
+.ss-figure-hint {
+  font-size: 13.5px;
+  line-height: 1.7;
+  color: var(--ink-2);
+}
+
+/* 问句：朱红宋体，等条目揭示完才出现 */
+.ss-question {
+  margin: clamp(18px, 3.2vh, 34px) 0 0;
+  font-family: var(--font-serif);
+  font-size: clamp(20px, 2.2vw, 32px);
+  line-height: 1.6;
+  color: var(--cinnabar);
+  opacity: 0;
+  transform: translateY(10px);
+  transition:
+    opacity 420ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 420ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.ss-question.on {
+  opacity: 1;
+  transform: none;
+}
+
+/* 字词关：一个词一行的大字（对应 .pptx 的 54pt 下限） */
+.ss-list.words {
+  gap: clamp(10px, 2.2vh, 24px);
+}
+
+.ss-list.words .ss-text {
+  font-size: clamp(34px, 5vw, 72px);
+  line-height: 1.3;
+  letter-spacing: 0.06em;
+}
+
+/* 比一比：一件事对一件事，左右两栏，中间一条纸线（同 pptx 的 drawCompare） */
+.ss-list.cols {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(16px, 3vh, 32px) clamp(20px, 3vw, 44px);
+}
+
+.ss-list.cols .ss-item:nth-child(even) {
+  padding-left: clamp(20px, 3vw, 44px);
+  border-left: var(--rule-width, 1px) solid var(--paper-line);
+}
+
+/* 路径页、拆解页顶部那几行学生要看的话（板书旁注 + 问句） */
+.ss-trail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 22px;
+  margin: -8px 0 clamp(16px, 2.6vh, 26px);
+}
+
+.ss-trail-line {
+  margin: 0;
+  font-size: clamp(16px, 1.6vw, 22px);
+  line-height: 1.7;
+  color: var(--ink);
+}
+
+.ss-trail-q {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: clamp(16px, 1.6vw, 22px);
+  line-height: 1.7;
+  color: var(--cinnabar);
+}
+
+/* 投影仪常见的 1280×720 / 1440×900：压一压字号，保证一屏放得下 */
+@media (max-height: 800px) {
+  .show-stage {
+    padding-top: 52px;
+    padding-bottom: 18px;
+  }
+  .ss-title {
+    font-size: clamp(24px, 2.7vw, 34px);
+    margin-bottom: 18px;
+  }
+  .ss-text {
+    font-size: clamp(17px, 1.7vw, 22px);
+  }
+  .ss-list {
+    gap: 12px;
+  }
+  .cube {
+    max-height: 48vh;
+  }
+  .path-svg {
+    max-height: 46vh;
+  }
+  .cube-note {
+    margin: 6px 0;
+    font-size: 12.5px;
+  }
+  .path-caption {
+    min-height: 150px;
+  }
+  .ss-cover-lead {
+    font-size: clamp(19px, 2.2vw, 26px);
+    margin-bottom: 16px;
+  }
+  .ss-figure {
+    min-height: 84px;
+    margin-bottom: 18px;
+  }
+  .ss-question {
+    margin-top: 16px;
+    font-size: clamp(18px, 1.9vw, 26px);
+  }
+  .ss-list.words .ss-text {
+    font-size: clamp(30px, 4vw, 52px);
+  }
+}
+
+@media (max-width: 880px) {
+  .cube-wrap,
+  .path-wrap {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+  }
+  .cube,
+  .path-svg {
+    max-height: 38vh;
+  }
+  .cube-notes {
+    display: none;
+  }
+  .path-caption {
+    min-height: 0;
+  }
+  .ss-figure {
+    max-width: none;
+  }
+  .ss-list.cols {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .ss-list.cols .ss-item:nth-child(even) {
+    padding-left: 0;
+    border-left: none;
+  }
+}
